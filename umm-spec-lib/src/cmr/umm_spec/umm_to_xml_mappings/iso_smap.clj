@@ -9,6 +9,7 @@
     [cmr.umm-spec.umm-to-xml-mappings.iso-shared.distributions-related-url :as sdru]
     [cmr.umm-spec.umm-to-xml-mappings.iso-shared.iso-topic-categories :as iso-topic-categories]
     [cmr.umm-spec.umm-to-xml-mappings.iso-shared.platform :as platform]
+    [cmr.umm-spec.umm-to-xml-mappings.iso-shared.processing-level :as proc-level]
     [cmr.umm-spec.umm-to-xml-mappings.iso-shared.project-element :as project]
     [cmr.umm-spec.umm-to-xml-mappings.iso-smap.data-contact :as data-contact]
     [cmr.umm-spec.umm-to-xml-mappings.iso19115-2.tiling-system :as tiling]
@@ -79,7 +80,8 @@
 (defn umm-c-to-iso-smap-xml
   "Returns ISO SMAP XML from UMM-C record c."
   [c]
-  (let [platforms (platform/platforms-with-id (:Platforms c))]
+  (let [platforms (platform/platforms-with-id (:Platforms c))
+        {processing-level :ProcessingLevel} c]
     (xml
      [:gmd:DS_Series
       iso-smap-xml-namespaces
@@ -121,7 +123,13 @@
                                            :codeListValue ""} "authority"]]]]]])
                  [:gmd:code [:gco:CharacterString (:DOI doi)]]
                  [:gmd:codeSpace [:gco:CharacterString "gov.nasa.esdis.umm.doi"]]
-                 [:gmd:description [:gco:CharacterString "DOI"]]]])]]
+                 [:gmd:description [:gco:CharacterString "DOI"]]]])
+            (when-let [collection-data-type (:CollectionDataType c)]
+             [:gmd:identifier
+              [:gmd:MD_Identifier
+               [:gmd:code [:gco:CharacterString collection-data-type]]
+               [:gmd:codeSpace [:gco:CharacterString "gov.nasa.esdis.umm.collectiondatatype"]]
+               [:gmd:description [:gco:CharacterString "Collection Data Type"]]]])]]
           [:gmd:abstract (char-string (or (:Abstract c) su/not-provided))]
           [:gmd:purpose {:gco:nilReason "missing"} (char-string (:Purpose c))]
           [:gmd:status (generate-collection-progress c)]
@@ -171,7 +179,11 @@
               [:gmd:EX_TemporalExtent
                [:gmd:extent
                 [:gml:TimeInstant {:gml:id (su/generate-id)}
-                 [:gml:timePosition date]]]]])]]]]
+                 [:gml:timePosition date]]]]])]]
+
+        (when processing-level
+         [:gmd:processingLevel
+          (proc-level/generate-iso-processing-level processing-level)])]]
         [:gmd:identificationInfo
          [:gmd:MD_DataIdentification
           [:gmd:citation
@@ -195,6 +207,13 @@
           (sdru/generate-publication-related-urls c)
           [:gmd:language (char-string "eng")]]]
         (sdru/generate-service-related-url (:RelatedUrls c))
+        (when processing-level
+         [:gmd:contentInfo
+          [:gmd:MD_ImageDescription
+           [:gmd:attributeDescription ""]
+           [:gmd:contentType ""]
+           [:gmd:processingLevelCode
+             (proc-level/generate-iso-processing-level processing-level)]]])
         (let [related-url-distributions (sdru/generate-distributions c)]
          (when related-url-distributions
           [:gmd:distributionInfo

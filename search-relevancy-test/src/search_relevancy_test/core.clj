@@ -36,10 +36,24 @@
             repeat)
     (rest csv-data)))
 
-(defn read-anomaly-test-csv
-  "Read the anomaly test CSV and convert data to clojure map"
-  []
-  (->> (io/resource "anomaly_tests.csv")
+(defn read-csv
+  "Read the CSV and convert data to clojure map"
+  [csv-file]
+  (->> (io/resource csv-file)
        io/reader
        csv/read-csv
        csv-data->maps))
+
+
+(defn read-anomaly-test-csv
+  "Read the anomaly test CSV and convert data to clojure map"
+  []
+  (read-csv "anomaly_tests.csv"))
+
+(defn get-argument-value
+  "Get the value of the argument or nil if the argument does not exist"
+  [args arg-name]
+  (when args
+    (let [arg-index (.indexOf args arg-name)]
+      (when (> arg-index -1)
+        (nth args (inc arg-index))))))
