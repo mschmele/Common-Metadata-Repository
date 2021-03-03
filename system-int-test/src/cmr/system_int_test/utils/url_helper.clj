@@ -262,13 +262,6 @@
           (transmit-config/ingest-port)
           provider-id))
 
-(defn ingest-granule-bulk-update-url
-  "Bulk update granules"
-  [provider-id]
-  (format "http://localhost:%s/providers/%s/bulk-update/granules"
-          (transmit-config/ingest-port)
-          provider-id))
-
 (defn ingest-collection-bulk-update-status-url
   "Get the tasks and statuses for collection bulk update by provider"
   [provider-id]
@@ -285,12 +278,33 @@
           task-id))
 
 (defn ingest-collection-bulk-granule-update-url
-  "Bulk update collections"
+  "Bulk update granules"
   [provider-id]
   (format "http://localhost:%s/providers/%s/bulk-update/granules"
           (transmit-config/ingest-port)
           provider-id))
 
+(defn ingest-granule-bulk-update-status-url
+  "Get the tasks and statuses for granule bulk update by provider"
+  [provider-id]
+  (format "http://localhost:%s/providers/%s/bulk-update/granules/status"
+          (transmit-config/ingest-port)
+          provider-id))
+
+(defn ingest-granule-bulk-update-task-status-url
+  "Get the task and granule statuses by provider and task"
+  [provider-id task-id]
+  (format "http://localhost:%s/providers/%s/bulk-update/granules/status/%s"
+          (transmit-config/ingest-port)
+          provider-id
+          task-id))
+
+(defn ingest-granule-bulk-update-url
+  "Bulk update granules"
+  [provider-id]
+  (format "http://localhost:%s/providers/%s/bulk-update/granules"
+          (transmit-config/ingest-port)
+          provider-id))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search URLs
 

@@ -193,10 +193,10 @@
             provider-id request))
          (GET "/status" ; Gets all tasks for provider
            request
-           (bulk/get-provider-tasks provider-id request))
+           (bulk/get-provider-granule-tasks provider-id request))
          (GET "/status/:task-id"
            [task-id :as request]
-           (bulk/get-provider-task-status provider-id task-id request)))))))
+           (bulk/get-provider-granule-task-status provider-id task-id request)))))))
 
 (defn build-routes [system]
   (routes

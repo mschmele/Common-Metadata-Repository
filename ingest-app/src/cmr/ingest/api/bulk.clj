@@ -12,6 +12,7 @@
    [cmr.ingest.api.core :as api-core]
    [cmr.ingest.config :as ingest-config]
    [cmr.ingest.data.bulk-update :as data-bulk-update]
+   [cmr.ingest.data.granule-bulk-update :as granule-data-bulk-update]
    [cmr.ingest.services.bulk-update-service :as bulk-update]
    [cmr.ingest.services.granule-bulk-update-service :as granule-bulk-update]
    [cmr.ingest.services.ingest-service :as ingest]))
@@ -166,3 +167,71 @@
         :status-message (:status-message task-status)
         :request-json-body (:request-json-body task-status)
         :collection-statuses collection-statuses}))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Granule Bulk Update
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn get-provider-granule-tasks
+  "Get all granule tasks and task statuses for provider."
+  [provider-id request]
+  (let [{:keys [headers request-context]} request]
+    (api-core/verify-provider-exists request-context provider-id)
+    (acl/verify-ingest-management-permission request-context :read :provider-object provider-id)
+    (generate-provider-tasks-response
+     headers
+     {:status 200
+      :tasks (granule-data-bulk-update/get-bulk-update-statuses-for-provider
+              request-context
+              provider-id)})))
+
+(defmulti generate-provider-granule-task-status-response
+  "Convert a result to a proper response format"
+  (fn [headers result]
+    (api-core/get-ingest-result-format headers :xml)))
+
+(defmethod generate-provider-granule-task-status-response :json
+  [headers result]
+  ;; No special processing needed
+  (api-core/generate-ingest-response headers result))
+
+(defmethod generate-provider-granule-task-status-response :xml
+  [headers result]
+  ;; Create an xml response for a list of tasks
+  {:status (api-core/ingest-status-code result)
+   :headers {"Content-Type" (mt/format->mime-type :xml)}
+   :body (xml/emit-str
+          (xml/element :result {}
+           (xml/element :created-at {} (str (:created-at result)))
+           (xml/element :name {} (str (:name result)))
+           (xml/element :task-status {} (:task-status result))
+           (xml/element :status-message {} (:status-message result))
+           (xml/element :request-json-body {} (:request-json-body result))
+           (generate-xml-status-list result
+            :granule-statuses :collection-status :concept-id)))})
+
+(defn get-provider-granule-task-status
+  "Get granule bulk update tasks and task statuses for given provider"
+  [provider-id task-id request]
+  (let [{:keys [headers request-context]} request]
+    (api-core/verify-provider-exists request-context provider-id)
+    (acl/verify-ingest-management-permission request-context :read :provider-object provider-id)
+    (let [task-status (granule-data-bulk-update/get-bulk-update-task-status-for-provider
+                       request-context
+                       task-id
+                       provider-id)
+          granule-statuses (granule-data-bulk-update/get-bulk-update-granule-statuses-for-task
+                            request-context
+                            task-id)]
+      (when (or (nil? task-status) (nil? (:status task-status)))
+        (srvc-errors/throw-service-error
+          :not-found (format "Bulk update task with task id [%s] could not be found for provider id [%s]." task-id provider-id)))
+      (generate-provider-granule-task-status-response
+       headers
+       {:status 200
+        :created-at (:created-at task-status)
+        :name (:name task-status)
+        :task-status (:status task-status)
+        :status-message (:status-message task-status)
+        :request-json-body (:request-json-body task-status)
+        :granule-statuses granule-statuses}))))

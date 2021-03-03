@@ -811,24 +811,3 @@
   (client/post (url/ingest-clear-cache-url)
                {:connection-manager (s/conn-mgr)
                 :headers {transmit-config/token-header (transmit-config/echo-system-token)}}))
-
-(defn bulk-update-granules
-  [provider-id request-body options]
-  (let [accept-format (get options :accept-format :xml)
-        token (:token options)
-        user-id (:user-id options)
-        headers (when (or user-id token)
-                  (util/remove-nil-keys
-                   {transmit-config/token-header token
-                    "user-id" user-id}))
-        params {:method :post
-                :url (url/ingest-collection-bulk-granule-update-url provider-id)
-                :body (json/generate-string request-body)
-                :connection-manager (s/conn-mgr)
-                :throw-exceptions false}
-        params (merge params (when accept-format {:accept accept-format}))
-        params (merge params (when headers {:headers headers}))
-        response (client/request params)]
-    (if (:raw? options)
-      response
-      (parse-bulk-update-response response options))))
