@@ -240,7 +240,7 @@
     (are3
      [query expected]
      (let [_ (dev-sys-util/freeze-time! "2020-01-01T10:00:00Z")
-           coll7 (d/ingest-umm-spec-collection
+           coll1 (d/ingest-umm-spec-collection
                    "PROV1"
                    (data-umm-spec/collection
                     {:ShortName "This one is old and should be cleaned up"
@@ -249,7 +249,7 @@
                      :Platforms (:Platforms (fu/platforms "STALE" 2 2 1))}))
 
            _ (dev-sys-util/freeze-time! (time/yesterday))
-           coll8 (d/ingest-umm-spec-collection
+           coll2 (d/ingest-umm-spec-collection
                    "PROV2"
                    (data-umm-spec/collection
                     {:ShortName "Yesterday's news"
@@ -257,11 +257,34 @@
                      :Platforms (:Platforms (fu/platforms "old AND stale" 2 1 1))}))
            _ (index/wait-until-indexed)
            _ (dev-sys-util/clear-current-time!)
-           
+
+           coll3 (d/ingest-umm-spec-collection
+                   "PROV1"
+                   (data-umm-spec/collection
+                    {:ShortName "Tombstone"
+                     :EntryTitle "I got two guns, one for each of ya"
+                     :Platforms (:Platforms (fu/platforms "Tombstone" 2 1 1))}))
+           coll3-revision-1 (d/ingest-umm-spec-collection
+                             "PROV1"
+                             (data-umm-spec/collection
+                              {:ShortName "Tombstone"
+                               :Version 2
+                               :EntryTitle "Tombstone 2: Tombstonier"
+                               :Platforms (:Platforms (fu/platforms "Tombstone" 1 2 2))}))
+           concept3 {:provider-id "PROV1"
+                     :concept-type :collection
+                     :native-id (:EntryTitle coll3)}
+
+           _ (ingest/delete-concept concept3)
+           _ (index/wait-until-indexed)
+
            results (get-in (search/get-autocomplete-json (str "q=" query)) [:feed :entry])]
        (compare-autocomplete-results results expected))
      "None found"
      "stale" []
 
      "Still none found"
-     "old" [])))
+     "old" []
+
+     "Don't find tombstoned collection facets"
+     "tombstone" [])))
